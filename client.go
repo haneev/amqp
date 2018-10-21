@@ -1408,6 +1408,25 @@ func linkProperty(key string, value interface{}) LinkOption {
 	}
 }
 
+// LinkSourceName sets the name of the source queue
+func LinkSourceName(name string) LinkOption {
+	return func(l *link) error {
+		l.name = name
+		return nil
+	}
+}
+
+// LinkSourceCapabilities sets the source capabilities
+func LinkSourceCapabilities(capabilities ...symbol) LinkOption {
+	return func (l *link) error {
+		if l.source == nil {
+			l.source = new(source)
+		}
+		l.source.Capabilities = append(l.source.Capabilities, capabilities...)
+		return nil
+	}
+}
+
 // LinkSourceAddress sets the source address.
 func LinkSourceAddress(addr string) LinkOption {
 	return func(l *link) error {
