@@ -518,6 +518,13 @@ func (s *Session) mux(remoteBegin *performBegin) {
 
 		// handle allocation request
 		case l := <-s.allocateHandle:
+			// Check if link name already exists, if so then an error should be returned
+			if linksByName[l.name] != nil {
+				l.err = errorErrorf("link with name '%v' already exists", l.name)
+				l.rx <- nil
+				continue
+			}
+
 			next, ok := handles.next()
 			if !ok {
 				l.err = errorErrorf("reached session handle max (%d)", s.handleMax)
@@ -1408,21 +1415,32 @@ func linkProperty(key string, value interface{}) LinkOption {
 	}
 }
 
-// LinkSourceName sets the name of the source queue
-func LinkSourceName(name string) LinkOption {
+// LinkName sets the name of the link.
+//
+// The link names must be unique per-connection.
+//
+// Default: randomly generated.
+func LinkName(name string) LinkOption {
 	return func(l *link) error {
 		l.name = name
 		return nil
 	}
 }
 
-// LinkSourceCapabilities sets the source capabilities
-func LinkSourceCapabilities(capabilities ...symbol) LinkOption {
+// LinkSourceCapabilities sets the source capabilities.
+func LinkSourceCapabilities(capabilities ...string) LinkOption {
 	return func (l *link) error {
 		if l.source == nil {
 			l.source = new(source)
 		}
-		l.source.Capabilities = append(l.source.Capabilities, capabilities...)
+
+		// Convert string to symbol
+		symbolCapabilities := make([]symbol, len(capabilities))
+		for i, v := range capabilities {
+			symbolCapabilities[i] = symbol(v)
+		}
+
+		l.source.Capabilities = append(l.source.Capabilities, symbolCapabilities...)
 		return nil
 	}
 }

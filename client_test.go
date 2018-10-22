@@ -94,7 +94,7 @@ func TestLinkOptions(t *testing.T) {
 func TestSourceName(t *testing.T) {
 	expectedSourceName := "source-name"
 	opts := []LinkOption{
-		LinkSourceName(expectedSourceName),
+		LinkName(expectedSourceName),
 	}
 
 	got, err := newLink(nil, nil, opts)

@@ -728,6 +728,65 @@ func TestIntegrationSessionHandleMax(t *testing.T) {
 	}
 }
 
+func TestIntegrationLinkName(t *testing.T) {
+	queueName, _, cleanup := newTestQueue(t, "linkName")
+	defer cleanup()
+
+	tests := []struct {
+		names	string
+		error   string
+	}{
+		{
+			name: 	  "linkA",
+			error:    "link with name 'linkA' already exists",
+		},
+	}
+
+	for _, tt := range tests {
+		label := fmt.Sprintf("name %v", tt.name)
+		t.Run(label, func(t *testing.T) {
+			// Create client
+			client := newSBClient(t, label)
+			defer client.Close()
+
+			// Open a session
+			session, err := client.NewSession()
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			senderOrigin, err := session.NewSender(
+				amqp.LinkTargetAddress(queueName),
+				amqp.LinkName(tt.name),
+			)
+
+			// This one should fail
+			sender, err := session.NewSender(
+				amqp.LinkTargetAddress(queueName),
+				amqp.LinkName(tt.name),
+			)
+
+			switch {
+				case err == nil:
+				case tt.error == nil:
+					t.Fatal(err)
+				case tt.error != err.Error():
+					t.Errorf("expect error to match %q, but it was %q", tt.error, err)
+			}
+
+			err = senderOrigin.Close(context.Background())
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			err = sender.Close(context.Background())
+			if err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}
+
 func TestIntegrationClose(t *testing.T) {
 	queueName, _, cleanup := newTestQueue(t, "close")
 	defer cleanup()
