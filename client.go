@@ -540,6 +540,7 @@ func (s *Session) mux(remoteBegin *performBegin) {
 		case l := <-s.deallocateHandle:
 			delete(links, l.remoteHandle)
 			delete(deliveryIDByHandle, l.handle)
+			delete(linksByName, l.name)
 			handles.remove(l.handle)
 			close(l.rx) // close channel to indicate deallocation
 
@@ -653,7 +654,6 @@ func (s *Session) mux(remoteBegin *performBegin) {
 				if !linkOk {
 					break
 				}
-				delete(linksByName, body.Name) // name no longer needed
 
 				link.remoteHandle = body.Handle
 				links[link.remoteHandle] = link
@@ -1429,7 +1429,7 @@ func LinkName(name string) LinkOption {
 
 // LinkSourceCapabilities sets the source capabilities.
 func LinkSourceCapabilities(capabilities ...string) LinkOption {
-	return func (l *link) error {
+	return func(l *link) error {
 		if l.source == nil {
 			l.source = new(source)
 		}

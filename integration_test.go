@@ -733,12 +733,12 @@ func TestIntegrationLinkName(t *testing.T) {
 	defer cleanup()
 
 	tests := []struct {
-		names	string
-		error   string
+		name  string
+		error string
 	}{
 		{
-			name: 	  "linkA",
-			error:    "link with name 'linkA' already exists",
+			name:  "linkA",
+			error: "link with name 'linkA' already exists",
 		},
 	}
 
@@ -759,29 +759,27 @@ func TestIntegrationLinkName(t *testing.T) {
 				amqp.LinkTargetAddress(queueName),
 				amqp.LinkName(tt.name),
 			)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer testClose(t, senderOrigin.Close)
 
 			// This one should fail
 			sender, err := session.NewSender(
 				amqp.LinkTargetAddress(queueName),
 				amqp.LinkName(tt.name),
 			)
+			if err == nil {
+				testClose(t, sender.Close)
+			}
 
 			switch {
-				case err == nil:
-				case tt.error == nil:
-					t.Fatal(err)
-				case tt.error != err.Error():
-					t.Errorf("expect error to match %q, but it was %q", tt.error, err)
-			}
-
-			err = senderOrigin.Close(context.Background())
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			err = sender.Close(context.Background())
-			if err != nil {
-				t.Fatal(err)
+			case err == nil && tt.error == "":
+				// success
+			case err == nil:
+				t.Fatalf("expected error to contain %q, but it was nil", tt.error)
+			case !strings.Contains(err.Error(), tt.error):
+				t.Errorf("expected error to contain %q, but it was %q", tt.error, err)
 			}
 		})
 	}
